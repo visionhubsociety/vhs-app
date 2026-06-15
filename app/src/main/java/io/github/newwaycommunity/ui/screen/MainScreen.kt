@@ -2,7 +2,9 @@ package io.github.newwaycommunity.ui.screen
 
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.media.MediaPlayer
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
