@@ -24,14 +24,14 @@ android {
         create("release") {
             val envPath = System.getenv("KEYSTORE_PATH") ?: "nwc-release-key.jks"
             val envPassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
-            val envAlias = System.getenv("KEYSTORE_ALIAS") ?: ""
 
             storeFile = file(envPath)
             storePassword = envPassword
-            keyAlias = envAlias
+            keyAlias = "nwc-app"
             keyPassword = envPassword
         }
     }
+
 
     buildTypes {
         release {
