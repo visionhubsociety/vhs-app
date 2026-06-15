@@ -28,7 +28,7 @@ jobs:
       run: |
         echo "$FIREBASE_SECRET" | base64 --decode > app/google-services.json
 
-    - name: Decode and Prepare Keystore
+    - name: Decode keystore
       run: |
         echo "${{ secrets.KEYSTORE_FILE }}" | base64 --decode > app/nwc-release-key.jks
 
@@ -39,18 +39,16 @@ jobs:
         fi
         chmod +x gradlew
 
-    - name: Build Release APK
+    - name: Build and Sign Release APK via Gradle
+      env:
+        KEYSTORE_PATH: "nwc-release-key.jks"
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        KEYSTORE_ALIAS: ${{ secrets.KEYSTORE_ALIAS }}
       run: ./gradlew assembleRelease --no-daemon
 
-    - name: Sign APK with Production Keystore
+    - name: Rename APK for Release
       run: |
-        MY_APK=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
-        build-tools/$(ls /usr/local/lib/android/sdk/build-tools/ | tail -n 1)/apksigner sign \
-          --ks app/nwc-release-key.jks \
-          --ks-pass pass:${{ secrets.KEYSTORE_PASSWORD }} \
-          --ks-key-alias ${{ secrets.KEYSTORE_ALIAS }} \
-          --key-pass pass:${{ secrets.KEYSTORE_PASSWORD }} \
-          --out app-release.apk "$MY_APK"
+        cp app/build/outputs/apk/release/app-release.apk app-release.apk
 
     - name: Delete Old GitHub Release
       env:
