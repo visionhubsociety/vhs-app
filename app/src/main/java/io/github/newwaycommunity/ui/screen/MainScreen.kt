@@ -2,16 +2,13 @@ package io.github.newwaycommunity.ui.screen
 
 import android.app.Activity
 import android.content.Context
-import android.content.Intent
 import android.media.MediaPlayer
-import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -48,7 +45,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -63,6 +59,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.Locale
 
 fun Modifier.shimmerModifier(): Modifier = composed {
     val transition = rememberInfiniteTransition(label = "Shimmer")
@@ -121,6 +118,11 @@ fun MainScreen(viewModel: MainViewModel) {
     
     var showUpdateDialog by remember { mutableStateOf(false) }
     var isDownloading by remember { mutableStateOf(false) }
+    var isDownloadFinished by remember { mutableStateOf(false) }
+    var downloadProgress by remember { mutableStateOf(0.0f) }
+    
+    var serverVersionName by remember { mutableStateOf("") }
+    var serverChangelog by remember { mutableStateOf("") }
     var updateUrl by remember { mutableStateOf("") }
 
     val mediaPlayer = remember {
@@ -148,6 +150,18 @@ fun MainScreen(viewModel: MainViewModel) {
                     val serverVersionCode = jsonObject.optInt("versionCode", 0)
                     
                     if (serverVersionCode > currentVersionCode) {
+                        serverVersionName = jsonObject.optString("version", "1.0.0")
+                        
+                        val changelogObj = jsonObject.optJSONObject("changelog")
+                        val systemLanguage = Locale.getDefault().language
+                        serverChangelog = if (systemLanguage == "pt" && changelogObj != null) {
+                            changelogObj.optString("pt", "Primeiro lançamento")
+                        } else if (changelogObj != null) {
+                            changelogObj.optString("en", "First release")
+                        } else {
+                            "Primeiro lançamento"
+                        }
+                        
                         val sourcesArray = jsonObject.optJSONArray("downloadSources")
                         val downloadLink = if (sourcesArray != null && sourcesArray.length() > 0) {
                             sourcesArray.optJSONObject(0).optString("url", "")
@@ -250,19 +264,55 @@ fun MainScreen(viewModel: MainViewModel) {
     if (showUpdateDialog) {
         AlertDialog(
             onDismissRequest = { if (!isDownloading) showUpdateDialog = false },
-            title = { Text(text = "Atualização Disponível", fontWeight = FontWeight.SemiBold, fontSize = 24.sp) },
-            text = { Text(text = "Uma nova versão do aplicativo está disponível. Verifique as alterações no site oficial.", fontSize = 14.sp) },
+            title = { 
+                Text(
+                    text = "Atualização Disponível", 
+                    fontWeight = FontWeight.Bold, 
+                    fontSize = 22.sp,
+                    color = MaterialTheme.colorScheme.primary
+                ) 
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(text = "Versão: $serverVersionName", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                    Text(text = "Changelog: $serverChangelog", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    
+                    if (isDownloading || isDownloadFinished) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        if (isDownloadFinished) {
+                            LinearProgressIndicator(
+                                modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(99.dp)),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        } else {
+                            LinearProgressIndicator(
+                                progress = { downloadProgress },
+                                modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(99.dp)),
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                            )
+                        }
+                    }
+                }
+            },
             confirmButton = {
                 TextButton(
-                    enabled = !isDownloading,
+                    enabled = !isDownloading && !isDownloadFinished,
                     onClick = {
                         isDownloading = true
                         scope.launch {
-                            val file = UpdateUtil.downloadApk(context, updateUrl)
+                            val file = UpdateUtil.downloadApk(context, updateUrl) { progress ->
+                                downloadProgress = progress
+                            }
                             isDownloading = false
                             if (file != null) {
+                                isDownloadFinished = true
                                 UpdateUtil.installApk(context, file)
                                 showUpdateDialog = false
+                                isDownloadFinished = false
                             }
                         }
                     }
@@ -271,25 +321,16 @@ fun MainScreen(viewModel: MainViewModel) {
                 }
             },
             dismissButton = {
-                TextButton(enabled = !isDownloading, onClick = { showUpdateDialog = false }) {
+                TextButton(
+                    enabled = !isDownloading && !isDownloadFinished, 
+                    onClick = { showUpdateDialog = false }
+                ) {
                     Text("Depois")
                 }
-            }
+            },
+            shape = RoundedCornerShape(28.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         )
-    }
-
-    if (isDownloading) {
-        Dialog(onDismissRequest = {}) {
-            Surface(
-                shape = RoundedCornerShape(28.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                modifier = Modifier.width(120.dp).height(120.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                }
-            }
-        }
     }
 
     ModalNavigationDrawer(

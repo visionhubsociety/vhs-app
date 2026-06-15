@@ -13,7 +13,11 @@ import java.net.URL
 
 object UpdateUtil {
 
-    suspend fun downloadApk(context: Context, downloadUrl: String): File? = withContext(Dispatchers.IO) {
+    suspend fun downloadApk(
+        context: Context, 
+        downloadUrl: String, 
+        onProgress: (Float) -> Unit
+    ): File? = withContext(Dispatchers.IO) {
         try {
             val url = URL(downloadUrl)
             val connection = url.openConnection() as HttpURLConnection
@@ -23,6 +27,7 @@ object UpdateUtil {
             connection.connect()
 
             if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                val fileLength = connection.contentLength
                 val updateDir = File(context.cacheDir, "apk-update")
                 if (!updateDir.exists()) updateDir.mkdirs()
 
@@ -31,7 +36,17 @@ object UpdateUtil {
 
                 connection.inputStream.use { input ->
                     apkFile.outputStream().use { output ->
-                        input.copyTo(output)
+                        val buffer = ByteArray(4096)
+                        var bytesRead: Int
+                        var totalBytesRead = 0L
+
+                        while (input.read(buffer).also { bytesRead = it } != -1) {
+                            output.write(buffer, 0, bytesRead)
+                            totalBytesRead += bytesRead
+                            if (fileLength > 0) {
+                                onProgress(totalBytesRead.toFloat() / fileLength.toFloat())
+                            }
+                        }
                     }
                 }
                 return@withContext apkFile
