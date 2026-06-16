@@ -469,6 +469,7 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
         }
     ) {
         Scaffold(
+            contentWindowInsets = WindowInsets.consumed,
             topBar = {
                 TopAppBar(
                     title = {
