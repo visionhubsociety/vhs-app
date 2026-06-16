@@ -1,9 +1,9 @@
 {
-    "version": "1.1.5",
-    "versionCode": 3,
+    "version": "1.1.6",
+    "versionCode": 4,
     "changelog": {
-        "pt": "Atualização: caixa de diálogo do atualizador",
-        "en": "Update: updater dialog"
+        "pt": "atualizar: corrigir diálogo",
+        "en": "update: fix dialog"
     },
     "downloadSources": [
         {

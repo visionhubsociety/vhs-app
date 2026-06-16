@@ -153,16 +153,23 @@ fun MainScreen(viewModel: MainViewModel) {
                     val serverVersionCode = jsonObject.optInt("versionCode", 0)
                     
                     if (serverVersionCode > currentVersionCode) {
-                        serverVersionName = jsonObject.optString("version", "1.0.0")
+                        serverVersionName = jsonObject.optString("version").ifBlank { "Erro" }
                         
                         val changelogObj = jsonObject.optJSONObject("changelog")
                         val systemLanguage = Locale.getDefault().language
-                        serverChangelog = if (systemLanguage == "pt" && changelogObj != null) {
-                            changelogObj.optString("pt", "Primeiro lançamento")
-                        } else if (changelogObj != null) {
-                            changelogObj.optString("en", "First release")
+                        
+                        if (changelogObj != null) {
+                            serverChangelog = if (systemLanguage == "pt") {
+                                changelogObj.optString("pt").ifBlank { "Não foi possível carregar as informações." }
+                            } else {
+                                changelogObj.optString("en").ifBlank { "Information could not be loaded." }
+                            }
                         } else {
-                            "Primeiro lançamento"
+                            serverChangelog = if (systemLanguage == "pt") {
+                                "Não foi possível carregar as informações."
+                            } else {
+                                "Information could not be loaded."
+                            }
                         }
                         
                         val sourcesArray = jsonObject.optJSONArray("downloadSources")
@@ -175,8 +182,22 @@ fun MainScreen(viewModel: MainViewModel) {
                             showUpdateDialog = true
                         }
                     }
+                } else {
+                    serverVersionName = "Erro"
+                    serverChangelog = if (Locale.getDefault().language == "pt") {
+                        "Não foi possível carregar as informações."
+                    } else {
+                        "Information could not be loaded."
+                    }
                 }
-            } catch (_: Exception) {}
+            } catch (_: Exception) {
+                serverVersionName = "Erro"
+                serverChangelog = if (Locale.getDefault().language == "pt") {
+                    "Não foi possível carregar as informações."
+                } else {
+                    "Information could not be loaded."
+                }
+            }
         }
     }
 
@@ -269,7 +290,7 @@ fun MainScreen(viewModel: MainViewModel) {
             onDismissRequest = { if (!isDownloading && !isDownloadFinished) showUpdateDialog = false },
             title = { 
                 Text(
-                    text = "Atualização disponível", 
+                    text = "Atualização Disponível", 
                     fontWeight = FontWeight.Bold, 
                     fontSize = 20.sp
                 ) 
