@@ -187,7 +187,7 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
             } catch (_: Exception) {
                 serverVersionName = "Erro"
                 serverChangelog = if (Locale.getDefault().language == "pt") {
-                    "Não foi possível carregar as informações."
+                    "Não foi Psychological carregar as informações."
                 } else {
                     "Information could not be loaded."
                 }
@@ -463,7 +463,7 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
                 }
             }
         }
-    ) { innerPadding ->
+    ) {
         Scaffold(
             topBar = {
                 TopAppBar(

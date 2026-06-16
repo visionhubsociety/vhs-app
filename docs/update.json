@@ -1,9 +1,9 @@
 {
-    "version": "1.2.0",
-    "versionCode": 8,
+    "version": "1.2.1",
+    "versionCode": 9,
     "changelog": {
-        "pt": "hmm idk",
-        "en": "hmm idk"
+        "pt": "Probably final update",
+        "en": "Probably final update"
     },
     "downloadSources": [
         {
