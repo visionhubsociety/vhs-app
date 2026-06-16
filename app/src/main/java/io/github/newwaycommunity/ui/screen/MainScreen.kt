@@ -91,7 +91,7 @@ fun Modifier.shimmerModifier(): Modifier = composed {
     background(brush)
 }
 
-@OptIn(ExperimentalMaterial3Api class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
     val context = LocalContext.current
@@ -465,8 +465,10 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
         }
     ) {
         Scaffold(
+            contentWindowInsets = WindowInsets.displayCutout,
             topBar = {
                 TopAppBar(
+                    windowInsets = WindowInsets.displayCutout,
                     title = {
                         Text(
                             text = menuItems.find { it.first == currentSection }?.second ?: "NWC",
