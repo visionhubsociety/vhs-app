@@ -463,7 +463,7 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
                 }
             }
         }
-    ) { innerPadding ->
+    ) {
         Scaffold(
             topBar = {
                 TopAppBar(
