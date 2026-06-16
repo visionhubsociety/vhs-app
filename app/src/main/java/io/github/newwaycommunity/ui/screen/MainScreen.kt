@@ -469,7 +469,6 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    windowInsets = WindowInsets.safeDrawing,
                     title = {
                         Text(
                             text = menuItems.find { it.first == currentSection }?.second ?: "NWC",
