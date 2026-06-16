@@ -91,7 +91,7 @@ fun Modifier.shimmerModifier(): Modifier = composed {
     background(brush)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api class)
 @Composable
 fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
     val context = LocalContext.current
@@ -240,13 +240,11 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
         2 -> true
         else -> systemInDark
     }
-    val statusBarColor = MaterialTheme.colorScheme.surfaceContainerHigh
     
     SideEffect {
         val window = (context as? Activity)?.window
         if (window != null) {
             val insetsController = WindowCompat.getInsetsController(window, view)
-            window.statusBarColor = statusBarColor.toArgb()
             insetsController.isAppearanceLightStatusBars = !isCalculatedDark
         }
     }
