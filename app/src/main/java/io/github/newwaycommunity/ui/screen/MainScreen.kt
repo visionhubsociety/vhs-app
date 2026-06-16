@@ -469,6 +469,7 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
         }
     ) {
         Scaffold(
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
                 TopAppBar(
                     windowInsets = WindowInsets.safeDrawing,
@@ -858,7 +859,7 @@ fun GameCard(game: Game, isAdminMode: Boolean, onLinkClick: (String) -> Unit) {
                 }
 
                 if (isAdminMode) {
-                    userIsAdminRow(game)
+                    userIsAdminRow()
                 }
 
                 if (game.pinned) {
@@ -977,7 +978,7 @@ private fun BoxScope.gamePinnedSurface() {
 }
 
 @Composable
-private fun BoxScope.userIsAdminRow(game: Game) {
+private fun BoxScope.userIsAdminRow() {
     Row(
         modifier = Modifier
             .align(Alignment.TopStart)
