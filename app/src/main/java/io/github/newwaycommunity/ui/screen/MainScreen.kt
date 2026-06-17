@@ -370,7 +370,7 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
                                     modes.forEachIndexed { index, iconRes ->
                                         val isSelected = selectedThemeMode == index
                                         Surface(shape = CircleShape, color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent, modifier = Modifier.size(34.dp).clickable { viewModel.setThemeMode(index) }) {
-                                            Box(contentAlignment = Alignment.Center) { Icon(painter = painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(18.dp), tint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant) }
+                                            Box(contentAlignment = Alignment.Center) { Icon(painter = painterResource(id = index), contentDescription = null, modifier = Modifier.size(18.dp), tint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant) }
                                         }
                                     }
                                 }
@@ -438,7 +438,6 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // VARSAYILAN DEFAULT MALZEME ŞEKLİ KORUNDU (RoundedCornerShape KORUMASI KALDIRILDI)
                             OutlinedTextField(
                                 value = searchQuery,
                                 onValueChange = { viewModel.setSearchQuery(it) },
