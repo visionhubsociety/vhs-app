@@ -699,7 +699,13 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
                         } else if (games.isEmpty()) {
                             Text(text = "Nenhum item encontrado.", modifier = Modifier.align(Alignment.Center).padding(32.dp), fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
                         } else {
-                            val limitedGames = games.take(visibleItemsCount)
+                            val displayGames = if (isUserLoggedInSimulated) {
+                                games
+                            } else {
+                                games.filter { !it.name.equals("NEW WAY COMMUNITY APP", ignoreCase = true) }
+                            }
+                            
+                            val limitedGames = displayGames.take(visibleItemsCount)
                             LazyVerticalGrid(state = gridState, columns = GridCells.Adaptive(320.dp), modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(18.dp), horizontalArrangement = Arrangement.spacedBy(18.dp)) {
                                 items(limitedGames, key = { it.id }) { game ->
                                     GameCard(
@@ -710,7 +716,7 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
                                         onDeleteClick = { gameToDelete = game }
                                     )
                                 }
-                                if (games.size > visibleItemsCount) {
+                                if (displayGames.size > visibleItemsCount) {
                                     item(span = { GridItemSpan(maxCurrentLineSpan) }) {
                                         Box(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
                                             Button(onClick = { visibleItemsCount += 8 }) { Text("Mostrar Mais") }
