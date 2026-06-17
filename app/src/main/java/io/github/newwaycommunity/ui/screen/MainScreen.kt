@@ -477,6 +477,57 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
         )
     }
 
+    if (showUpdateDialog) {
+        var isDownloading by remember { mutableStateOf(false) }
+        var progress by remember { mutableStateOf(0f) }
+
+        AlertDialog(
+            onDismissRequest = { if (!isDownloading) showUpdateDialog = false },
+            title = { Text("Nova Atualização disponível!", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Versão: $serverVersionName")
+                    if (serverChangelog.isNotEmpty()) {
+                        Text("Novidades:", fontWeight = FontWeight.Bold)
+                        Text(serverChangelog)
+                    }
+                    if (isDownloading) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
+                        Text(
+                            text = "Baixando: ${(progress * 100).toInt()}%",
+                            fontSize = 12.sp,
+                            modifier = Modifier.align(Alignment.End)
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    enabled = !isDownloading,
+                    onClick = {
+                        isDownloading = true
+                        scope.launch {
+                            val apkFile = UpdateUtil.downloadApk(context, updateUrl) { prg -> progress = prg }
+                            isDownloading = false
+                            if (apkFile != null) {
+                                UpdateUtil.installApk(context, apkFile)
+                                showUpdateDialog = false
+                            } else {
+                                Toast.makeText(context, "Erro no download!", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                ) { Text("Atualizar") }
+            },
+            dismissButton = {
+                if (!isDownloading) {
+                    TextButton(onClick = { showUpdateDialog = false }) { Text("Mais tarde") }
+                }
+            }
+        )
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         if (isCalculatedDark && starsEnabled) { StarsEffectComponent() }
 
