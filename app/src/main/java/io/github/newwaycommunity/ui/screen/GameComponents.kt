@@ -79,7 +79,7 @@ fun GameCard(game: Game, onLinkClick: (String) -> Unit, onEditClick: () -> Unit,
     val cardBorder = if (game.pinned) {
         BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
     } else {
-        BorderStroke(1.dp, MaterialScheme.colorScheme.outlineVariant)
+        BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     }
 
     Card(
