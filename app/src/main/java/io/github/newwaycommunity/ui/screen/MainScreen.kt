@@ -368,51 +368,55 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // İSTEDİĞİN ÇENTİKLİ VE GÖMÜLÜ ÇİZGİ ETİKETLİ ARAMA ÇUBUĞU TASARIMI (OutlinedTextField)
                             OutlinedTextField(
                                 value = searchQuery,
                                 onValueChange = { viewModel.setSearchQuery(it) },
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(56.dp),
-                                label = { Text("Pesquisar...") }, // Başlık çizgiye gömüldü
+                                label = { Text("Pesquisar...") },
                                 leadingIcon = { Icon(painterResource(R.drawable.search_24px), null) },
                                 singleLine = true,
-                                shape = RoundedCornerShape(8.dp)
+                                shape = RoundedCornerShape(8.dp),
+                                colors = OutlinedTextFieldDefaults.colors()
                             )
                             
-                            Box(modifier = Modifier.width(140.dp)) {
-                                // İSTEDİĞİN ÇENTİKLİ KATEGORİ SEÇİM ALANI TASARIMI (OutlinedCard Etiket Formu)
-                                OutlinedCard(
-                                    onClick = { dropdownExpanded = true },
+                            ExposedDropdownMenuBox(
+                                expanded = dropdownExpanded,
+                                onExpandedChange = { dropdownExpanded = !dropdownExpanded },
+                                modifier = Modifier.width(140.dp)
+                            ) {
+                                OutlinedTextField(
+                                    value = selectedSubCategory,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Filtro") },
+                                    trailingIcon = { 
+                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) 
+                                    },
+                                    singleLine = true,
                                     shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.height(56.dp),
-                                    border = BorderStroke(1.dp, OutlinedTextFieldDefaults.colors().unfocusedBorderColor)
+                                    modifier = Modifier
+                                        .menuAnchor()
+                                        .height(56.dp)
+                                        .fillMaxWidth(),
+                                    colors = OutlinedTextFieldDefaults.colors()
+                                )
+                                
+                                ExposedDropdownMenu(
+                                    expanded = dropdownExpanded,
+                                    onDismissRequest = { dropdownExpanded = false }
                                 ) {
-                                    Box(modifier = Modifier.fillMaxSize()) {
-                                        // Çizgiye gömülü küçük "Todas" veya Kategori başlığı simülasyonu
-                                        Text(
-                                            text = "Filtro",
-                                            fontSize = 12.sp,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier
-                                                .align(Alignment.TopStart)
-                                                .padding(start = 10.dp, top = 2.dp)
+                                    subCategories.forEach { category ->
+                                        DropdownMenuItem(
+                                            text = { Text(category, fontSize = 14.sp) },
+                                            onClick = { 
+                                                viewModel.setSubCategory(category)
+                                                dropdownExpanded = false 
+                                            },
+                                            contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
                                         )
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .padding(start = 12.dp, end = 8.dp, top = 14.dp),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(selectedSubCategory, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f), fontSize = 14.sp)
-                                            Icon(painterResource(if (dropdownExpanded) R.drawable.arrow_drop_up_24px else R.drawable.arrow_drop_down_24px), null)
-                                        }
                                     }
-                                }
-                                DropdownMenu(expanded = dropdownExpanded, onDismissRequest = { dropdownExpanded = false }) {
-                                    subCategories.forEach { category -> DropdownMenuItem(text = { Text(category) }, onClick = { viewModel.setSubCategory(category); dropdownExpanded = false }) }
                                 }
                             }
                         }
@@ -445,7 +449,7 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
                                 }
                                 if (games.size > visibleItemsCount) {
                                     item(span = { GridItemSpan(maxCurrentLineSpan) }) {
-                                        Box(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Center) {
+                                        Box(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
                                             Button(onClick = { visibleItemsCount += 8 }) { Text("Mostrar Mais") }
                                         }
                                     }
