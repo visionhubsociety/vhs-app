@@ -380,7 +380,7 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
                         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
                             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 4.dp).clickable { viewModel.setMonetEnabled(!monetEnabled) }, horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                 Text("Cores dinâmicas", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                                Switch(checked = monetEnabled, onCheckedChange = { monetEnabled = it; sharedPreferences.edit().putBoolean("stars_enabled", it).apply() }, modifier = Modifier.graphicsLayer(scaleX = 0.8f, scaleY = 0.8f))
+                                Switch(checked = monetEnabled, onCheckedChange = { viewModel.setMonetEnabled(it) }, modifier = Modifier.graphicsLayer(scaleX = 0.8f, scaleY = 0.8f))
                             }
                         }
                     }
@@ -447,31 +447,25 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
                                 keyboardActions = KeyboardActions(onGo = { focusManager.clearFocus() })
                             )
                             
-                            Box(modifier = Modifier.width(140.dp).fillMaxHeight()) {
-                                Box(
+                            ExposedDropdownMenuBox(
+                                expanded = dropdownExpanded,
+                                onExpandedChange = { dropdownExpanded = !dropdownExpanded },
+                                modifier = Modifier.width(140.dp).fillMaxHeight()
+                            ) {
+                                OutlinedTextField(
+                                    value = selectedSubCategory,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Filtro") },
+                                    trailingIcon = { 
+                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) 
+                                    },
+                                    singleLine = true,
                                     modifier = Modifier
+                                        .menuAnchor()
                                         .fillMaxSize()
-                                        .clickable { dropdownExpanded = !dropdownExpanded }
-                                ) {
-                                    OutlinedTextField(
-                                        value = selectedSubCategory,
-                                        onValueChange = {},
-                                        readOnly = true,
-                                        enabled = false,
-                                        label = { Text("Filtro") },
-                                        trailingIcon = { 
-                                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) 
-                                        },
-                                        singleLine = true,
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                                            disabledBorderColor = MaterialTheme.colorScheme.outline,
-                                            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                        ),
-                                        modifier = Modifier.fillMaxSize()
-                                    )
-                                }
+                                        .pointerInput(Unit) { detectTapGestures(onTap = { dropdownExpanded = !dropdownExpanded }) }
+                                )
                                 
                                 ExposedDropdownMenu(
                                     expanded = dropdownExpanded,
