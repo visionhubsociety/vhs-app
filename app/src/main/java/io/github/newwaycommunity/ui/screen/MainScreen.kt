@@ -116,7 +116,7 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
     SideEffect {
         val window = (context as? Activity)?.window
         if (window != null) {
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isAppearanceLightStatusBars
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isCalculatedDark
         }
     }
 
@@ -357,24 +357,101 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
     }
 
     if (showDeleteAllDialog) {
+        val sectionName = menuItems.find { it.first == currentSection }?.second ?: "NWC"
+        var confirmText by remember { mutableStateOf("") }
+        val isConfirmValid = confirmText.trim() == sectionName
+
         AlertDialog(
-            onDismissRequest = { showDeleteAllDialog = false },
-            title = { Text("Apagar Tudo", fontWeight = FontWeight.Bold) },
-            text = { Text("Tem certeza de que deseja apagar TODOS os itens desta seção? Esta ação não pode ser desfeita.") },
+            onDismissRequest = { 
+                showDeleteAllDialog = false
+                confirmText = ""
+            },
+            icon = {
+                Icon(
+                    painter = painterResource(id = R.drawable.delete_sweep_24px),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
+            title = { 
+                Text(
+                    text = "Apagar $sectionName", 
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                ) 
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Esta ação é irreversível. Para confirmar, digite o nome da seção exatamente como mostrado abaixo:",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = sectionName,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(vertical = 8.dp, horizontal = 12.dp),
+                            fontSize = 16.sp
+                        )
+                    }
+
+                    OutlinedTextField(
+                        value = confirmText,
+                        onValueChange = { confirmText = it },
+                        placeholder = { Text(sectionName) },
+                        singleLine = true,
+                        isError = confirmText.isNotBlank() && !isConfirmValid,
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
+                    )
+                }
+            },
             confirmButton = {
                 Button(
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    enabled = isConfirmValid,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        disabledContainerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.12f),
+                        disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    ),
                     onClick = {
                         viewModel.deleteAllGames { success ->
                             if (success) {
                                 Toast.makeText(context, "Seção limpa com sucesso!", Toast.LENGTH_SHORT).show()
                                 showDeleteAllDialog = false
+                                confirmText = ""
+                            } else {
+                                Toast.makeText(context, "Erro ao apagar!", Toast.LENGTH_SHORT).show()
                             }
                         }
                     }
-                ) { Text("Sim, Apagar Tudo") }
+                ) { 
+                    Text("Deletar esta seção") 
+                }
             },
-            dismissButton = { TextButton(onClick = { showDeleteAllDialog = false }) { Text("Cancelar") } }
+            dismissButton = { 
+                TextButton(
+                    onClick = { 
+                        showDeleteAllDialog = false
+                        confirmText = ""
+                    }
+                ) { 
+                    Text("Cancelar") 
+                } 
+            }
         )
     }
 
