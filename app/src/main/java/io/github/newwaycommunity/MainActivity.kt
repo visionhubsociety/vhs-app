@@ -2,10 +2,7 @@ package io.github.newwaycommunity
 
 import android.graphics.Color
 import android.media.MediaPlayer
-import android.os.Build
 import android.os.Bundle
-import android.view.View
-import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -28,12 +25,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         
         WindowCompat.setDecorFitsSystemWindows(window, false)
-
-        window.decorView.systemUiVisibility = (
-            View.SYSTEM_UI_FLAG_LAYOUT_STABLE 
-            or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN 
-            or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-        )
         
         window.statusBarColor = Color.TRANSPARENT
         window.navigationBarColor = Color.TRANSPARENT

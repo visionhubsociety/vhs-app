@@ -3,8 +3,10 @@ package io.github.newwaycommunity.ui.screen
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.media.MediaPlayer
 import android.net.Uri
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.*
@@ -92,9 +94,6 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
     var starsEnabled by remember { mutableStateOf(sharedPreferences.getBoolean("stars_enabled", true)) }
     
     var showUpdateDialog by remember { mutableStateOf(false) }
-    var isDownloading by remember { mutableStateOf(false) }
-    var isDownloadFinished by remember { mutableStateOf(false) }
-    var downloadProgress by remember { mutableStateOf(0.0f) }
     
     var serverVersionName by remember { mutableStateOf("") }
     var serverChangelog by remember { mutableStateOf("") }
@@ -120,7 +119,15 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
     }
 
     LaunchedEffect(Unit) {
-        val currentVersionCode = try { context.packageManager.getPackageInfo(context.packageName, 0).versionCode } catch (_: Exception) { 1 }
+        val currentVersionCode = try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                context.packageManager.getPackageInfo(context.packageName, PackageManager.PackageInfoFlags.of(0)).longVersionCode.toInt()
+            } else {
+                @Suppress("DEPRECATION")
+                context.packageManager.getPackageInfo(context.packageName, 0).versionCode
+            }
+        } catch (_: Exception) { 1 }
+
         withContext(Dispatchers.IO) {
             try {
                 val url = URL("https://newwaycommunity.github.io/nwc-app/update.json")
@@ -201,7 +208,7 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
                             imeAction = ImeAction.Next
                         ),
                         keyboardActions = KeyboardActions(
-                            onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                            onNext = { focusManager.moveFocus(FocusDirection.Next) }
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -269,7 +276,7 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
             text = {
                 Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     Column {
-                        OutlinedTextField(value = name, onValueChange = { if (it.length <= 30) name = it }, label = { Text("Nome") }, singleLine = true, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next), keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }))
+                        OutlinedTextField(value = name, onValueChange = { if (it.length <= 30) name = it }, label = { Text("Nome") }, singleLine = true, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next), keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Next) }))
                         Text(text = "${name.length} / 30", fontSize = 11.sp, modifier = Modifier.align(Alignment.End).padding(top = 2.dp))
                     }
                     Column {
@@ -277,7 +284,7 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
                         Text(text = "${desc.length} / 60", fontSize = 11.sp, modifier = Modifier.align(Alignment.End).padding(top = 2.dp))
                     }
                     Column {
-                        OutlinedTextField(value = category, onValueChange = { if (it.length <= 20) category = it }, label = { Text("Categoria (Ex: Ação, RPG)") }, singleLine = true, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next), keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }))
+                        OutlinedTextField(value = category, onValueChange = { if (it.length <= 20) category = it }, label = { Text("Categoria (Ex: Ação, RPG)") }, singleLine = true, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next), keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Next) }))
                         Text(text = "${category.length} / 20", fontSize = 11.sp, modifier = Modifier.align(Alignment.End).padding(top = 2.dp))
                     }
                     
@@ -286,11 +293,11 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
                         Card(modifier = Modifier.fillMaxWidth(), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
                             Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Column {
-                                    OutlinedTextField(value = link.label, onValueChange = { if (it.length <= 20) { link.label = it; val idx = dynamicLinks.indexOf(link); if(idx != -1) dynamicLinks[idx] = link.copy(label = it) } }, label = { Text("Nome do link *") }, singleLine = true, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next), keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }))
+                                    OutlinedTextField(value = link.label, onValueChange = { if (it.length <= 20) { link.label = it; val idx = dynamicLinks.indexOf(link); if(idx != -1) dynamicLinks[idx] = link.copy(label = it) } }, label = { Text("Nome do link *") }, singleLine = true, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next), keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Next) }))
                                     Text(text = "${link.label.length} / 20", fontSize = 11.sp, modifier = Modifier.align(Alignment.End).padding(top = 2.dp))
                                 }
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    OutlinedTextField(value = link.url, onValueChange = { link.url = it; val idx = dynamicLinks.indexOf(link); if(idx != -1) dynamicLinks[idx] = link.copy(url = it) }, label = { Text("URL *") }, singleLine = true, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next), keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }))
+                                    OutlinedTextField(value = link.url, onValueChange = { link.url = it; val idx = dynamicLinks.indexOf(link); if(idx != -1) dynamicLinks[idx] = link.copy(url = it) }, label = { Text("URL *") }, singleLine = true, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next), keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Next) }))
                                     IconButton(onClick = { dynamicLinks.remove(link) }) {
                                         Icon(painter = painterResource(id = R.drawable.delete_24px), contentDescription = "Remover Link", tint = MaterialTheme.colorScheme.error)
                                     }
@@ -440,7 +447,7 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
                                 label = { Text("Pesquisar...") },
                                 leadingIcon = { Icon(painterResource(R.drawable.search_24px), null) },
                                 singleLine = true,
-                                shape = RoundedCornerShape(0.dp),
+                                shape = OutlinedTextFieldDefaults.shape,
                                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
                                 keyboardActions = KeyboardActions(onGo = { focusManager.clearFocus() })
                             )
@@ -459,7 +466,7 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
                                         ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) 
                                     },
                                     singleLine = true,
-                                    shape = RoundedCornerShape(0.dp),
+                                    shape = OutlinedTextFieldDefaults.shape,
                                     modifier = Modifier
                                         .menuAnchor()
                                         .height(56.dp)
