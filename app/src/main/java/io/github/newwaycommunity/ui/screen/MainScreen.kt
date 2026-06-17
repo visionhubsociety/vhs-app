@@ -59,6 +59,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
+private data class LinkFieldState(val id: Int, var label: String = "", var url: String = "")
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
@@ -192,15 +194,58 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
         var category by remember { mutableStateOf(selectedGameForEdit?.category ?: "") }
         var bannerUrl by remember { mutableStateOf(selectedGameForEdit?.banner ?: "") }
         var isPinned by remember { mutableStateOf(selectedGameForEdit?.pinned ?: false) }
+        
+        val dynamicLinks = remember { mutableStateListOf<LinkFieldState>().apply {
+            selectedGameForEdit?.linkObjects?.forEachIndexed { idx, obj ->
+                add(LinkFieldState(idx, obj.label, obj.url))
+            }
+        }}
+        var nextLinkId by remember { mutableStateOf(dynamicLinks.size) }
 
         AlertDialog(
             onDismissRequest = { showFormDialog = false },
             title = { Text(if (selectedGameForEdit != null) "Editar Item" else "Adicionar Item", fontWeight = FontWeight.Bold) },
             text = {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(value = name, onValueChange = { if (it.length <= 30) name = it }, label = { Text("Nome (Máx 30)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(value = desc, onValueChange = { if (it.length <= 60) desc = it }, label = { Text("Descrição (Máx 60)") }, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(value = category, onValueChange = { if (it.length <= 20) category = it }, label = { Text("Categoria (Ex: Ação, RPG)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Column {
+                        OutlinedTextField(value = name, onValueChange = { if (it.length <= 30) name = it }, label = { Text("Nome") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                        Text(text = "${name.length} / 30", fontSize = 11.sp, modifier = Modifier.align(Alignment.End).padding(top = 2.dp))
+                    }
+                    Column {
+                        OutlinedTextField(value = desc, onValueChange = { if (it.length <= 60) desc = it }, label = { Text("Descrição") }, modifier = Modifier.fillMaxWidth())
+                        Text(text = "${desc.length} / 60", fontSize = 11.sp, modifier = Modifier.align(Alignment.End).padding(top = 2.dp))
+                    }
+                    Column {
+                        OutlinedTextField(value = category, onValueChange = { if (it.length <= 20) category = it }, label = { Text("Categoria (Ex: Ação, RPG)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                        Text(text = "${category.length} / 20", fontSize = 11.sp, modifier = Modifier.align(Alignment.End).padding(top = 2.dp))
+                    }
+                    
+                    Text("Links (Máx. 4)", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    dynamicLinks.forEach { link ->
+                        Card(modifier = Modifier.fillMaxWidth(), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+                            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Column {
+                                    OutlinedTextField(value = link.label, onValueChange = { if (it.length <= 20) { link.label = it; val idx = dynamicLinks.indexOf(link); if(idx != -1) dynamicLinks[idx] = link.copy(label = it) } }, label = { Text("Nome do link *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                    Text(text = "${link.label.length} / 20", fontSize = 11.sp, modifier = Modifier.align(Alignment.End).padding(top = 2.dp))
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    OutlinedTextField(value = link.url, onValueChange = { link.url = it; val idx = dynamicLinks.indexOf(link); if(idx != -1) dynamicLinks[idx] = link.copy(url = it) }, label = { Text("URL *") }, singleLine = true, modifier = Modifier.weight(1f))
+                                    IconButton(onClick = { dynamicLinks.remove(link) }) {
+                                        Icon(painter = painterResource(id = R.drawable.delete_24px), contentDescription = "Remover Link", tint = MaterialTheme.colorScheme.error)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (dynamicLinks.size < 4) {
+                        TextButton(onClick = { dynamicLinks.add(LinkFieldState(nextLinkId++)) }) {
+                            Icon(painter = painterResource(id = R.drawable.add_24px), contentDescription = null)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Adicionar Link")
+                        }
+                    }
+
                     OutlinedTextField(
                         value = bannerUrl,
                         onValueChange = { bannerUrl = it },
@@ -287,6 +332,7 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
                         actions = {
                             IconButton(onClick = { isMusicPlaying = !isMusicPlaying; sharedPreferences.edit().putBoolean("music_enabled", isMusicPlaying).apply(); try { if (isMusicPlaying) mediaPlayer.start() else mediaPlayer.pause() } catch (_: Exception) {} }) { Icon(painterResource(if (isMusicPlaying) R.drawable.music_note_24px else R.drawable.music_off_24px), "Música") }
                             IconButton(onClick = { try { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://discord.gg/W5DUnEUgtj"))) } catch (_: Exception) {} }) { Icon(painterResource(R.drawable.discord_24px), "Discord") }
+                            
                             IconButton(onClick = {
                                 if (isUserLoggedInSimulated) {
                                     isUserLoggedInSimulated = false
@@ -305,21 +351,64 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
                     )
                 },
                 floatingActionButton = {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        FloatingActionButton(onClick = { Toast.makeText(context, "Limpo!", Toast.LENGTH_SHORT).show() }, containerColor = MaterialTheme.colorScheme.errorContainer) { Icon(painterResource(R.drawable.delete_sweep_24px), "Limpar") }
-                        FloatingActionButton(onClick = { selectedGameForEdit = null; showFormDialog = true }, containerColor = MaterialTheme.colorScheme.primaryContainer) { Icon(painterResource(R.drawable.add_24px), "Adicionar") }
+                    if (isUserLoggedInSimulated) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            FloatingActionButton(onClick = { Toast.makeText(context, "Limpo!", Toast.LENGTH_SHORT).show() }, containerColor = MaterialTheme.colorScheme.errorContainer) { Icon(painterResource(R.drawable.delete_sweep_24px), "Limpar") }
+                            FloatingActionButton(onClick = { selectedGameForEdit = null; showFormDialog = true }, containerColor = MaterialTheme.colorScheme.primaryContainer) { Icon(painterResource(R.drawable.add_24px), "Adicionar") }
+                        }
                     }
                 }
             ) { scaffoldPadding ->
                 Column(modifier = Modifier.fillMaxSize().padding(scaffoldPadding).windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)).pointerInput(Unit) { detectTapGestures(onTap = { focusManager.clearFocus() }) }) {
                     if (isOnline && !isLoading) {
-                        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            OutlinedTextField(value = searchQuery, onValueChange = { viewModel.setSearchQuery(it) }, modifier = Modifier.weight(1f).height(56.dp), placeholder = { Text("Pesquisar...") }, leadingIcon = { Icon(painterResource(R.drawable.search_24px), null) }, singleLine = true, shape = RoundedCornerShape(8.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // İSTEDİĞİN ÇENTİKLİ VE GÖMÜLÜ ÇİZGİ ETİKETLİ ARAMA ÇUBUĞU TASARIMI (OutlinedTextField)
+                            OutlinedTextField(
+                                value = searchQuery,
+                                onValueChange = { viewModel.setSearchQuery(it) },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(56.dp),
+                                label = { Text("Pesquisar...") }, // Başlık çizgiye gömüldü
+                                leadingIcon = { Icon(painterResource(R.drawable.search_24px), null) },
+                                singleLine = true,
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            
                             Box(modifier = Modifier.width(140.dp)) {
-                                OutlinedCard(onClick = { dropdownExpanded = true }, modifier = Modifier.height(56.dp)) {
-                                    Row(modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                        Text(selectedSubCategory, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                                        Icon(painterResource(if (dropdownExpanded) R.drawable.arrow_drop_up_24px else R.drawable.arrow_drop_down_24px), null)
+                                // İSTEDİĞİN ÇENTİKLİ KATEGORİ SEÇİM ALANI TASARIMI (OutlinedCard Etiket Formu)
+                                OutlinedCard(
+                                    onClick = { dropdownExpanded = true },
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.height(56.dp),
+                                    border = BorderStroke(1.dp, OutlinedTextFieldDefaults.colors().unfocusedBorderColor)
+                                ) {
+                                    Box(modifier = Modifier.fillMaxSize()) {
+                                        // Çizgiye gömülü küçük "Todas" veya Kategori başlığı simülasyonu
+                                        Text(
+                                            text = "Filtro",
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier
+                                                .align(Alignment.TopStart)
+                                                .padding(start = 10.dp, top = 2.dp)
+                                        )
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .padding(start = 12.dp, end = 8.dp, top = 14.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(selectedSubCategory, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f), fontSize = 14.sp)
+                                            Icon(painterResource(if (dropdownExpanded) R.drawable.arrow_drop_up_24px else R.drawable.arrow_drop_down_24px), null)
+                                        }
                                     }
                                 }
                                 DropdownMenu(expanded = dropdownExpanded, onDismissRequest = { dropdownExpanded = false }) {
@@ -346,11 +435,17 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
                             val limitedGames = games.take(visibleItemsCount)
                             LazyVerticalGrid(state = gridState, columns = GridCells.Adaptive(320.dp), modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(18.dp), horizontalArrangement = Arrangement.spacedBy(18.dp)) {
                                 items(limitedGames, key = { it.id }) { game ->
-                                    GameCard(game = game, onLinkClick = { url -> context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }, onEditClick = { selectedGameForEdit = game; showFormDialog = true }, onDeleteClick = { Toast.makeText(context, "Deletado!", Toast.LENGTH_SHORT).show() })
+                                    GameCard(
+                                        game = game, 
+                                        isAdminMode = isUserLoggedInSimulated,
+                                        onLinkClick = { url -> context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }, 
+                                        onEditClick = { selectedGameForEdit = game; showFormDialog = true }, 
+                                        onDeleteClick = { Toast.makeText(context, "Deletado!", Toast.LENGTH_SHORT).show() }
+                                    )
                                 }
                                 if (games.size > visibleItemsCount) {
                                     item(span = { GridItemSpan(maxCurrentLineSpan) }) {
-                                        Box(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
+                                        Box(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Center) {
                                             Button(onClick = { visibleItemsCount += 8 }) { Text("Mostrar Mais") }
                                         }
                                     }
