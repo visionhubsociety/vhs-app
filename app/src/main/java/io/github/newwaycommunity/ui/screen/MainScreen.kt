@@ -328,42 +328,46 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp), modifier = Modifier.padding(vertical = 6.dp)) {
                         dynamicLinks.forEach { link ->
                             key(link.id) {
-                                Row(
+                                Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .background(Color.White.copy(alpha = 0.03f), shape = RoundedCornerShape(12.dp))
                                         .padding(8.dp),
-                                    verticalAlignment = Alignment.Bottom,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
-                                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        Column {
-                                            OutlinedTextField(
-                                                value = link.label.value, 
-                                                onValueChange = { if (it.length <= 20) link.label.value = it }, 
-                                                label = { Text("Nome do link *") }, 
-                                                singleLine = true, 
-                                                modifier = Modifier.fillMaxWidth()
-                                            )
-                                            Text(text = "${link.label.value.length} / 20", fontSize = 11.sp, modifier = Modifier.align(Alignment.End).padding(top = 2.dp))
-                                        }
+                                    Column {
+                                        OutlinedTextField(
+                                            value = link.label.value, 
+                                            onValueChange = { if (it.length <= 20) link.label.value = it }, 
+                                            label = { Text("Nome do link *") }, 
+                                            singleLine = true, 
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                        Text(text = "${link.label.value.length} / 20", fontSize = 11.sp, modifier = Modifier.align(Alignment.End).padding(top = 2.dp))
+                                    }
+                                    
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
                                         OutlinedTextField(
                                             value = link.url.value, 
                                             onValueChange = { link.url.value = it }, 
                                             label = { Text("URL *") }, 
                                             singleLine = true, 
-                                            modifier = Modifier.fillMaxWidth()
+                                            modifier = Modifier.weight(1f)
                                         )
-                                    }
-                                    IconButton(
-                                        onClick = { dynamicLinks.remove(link) },
-                                        modifier = Modifier.padding(bottom = 2.dp)
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(id = R.drawable.delete_24px), 
-                                            contentDescription = "Remover Link", 
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
+                                        IconButton(
+                                            onClick = { dynamicLinks.remove(link) },
+                                            modifier = Modifier.padding(top = 4.dp)
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.delete_24px), 
+                                                contentDescription = "Remover Link", 
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -754,7 +758,7 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
                     
                     Box(modifier = Modifier.fillMaxSize()) {
                         if (!isOnline) {
-                            Column(modifier = Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+                            Column(modifier = Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Center, horizontalAlignment = Alignment.CenterHorizontally) {
                                 Icon(painter = painterResource(id = R.drawable.wifi_off_24px), contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.error)
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Text(text = "Sem conexão", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
