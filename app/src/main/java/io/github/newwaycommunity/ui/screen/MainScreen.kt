@@ -753,3 +753,4 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
             }
         }
     }
+}
