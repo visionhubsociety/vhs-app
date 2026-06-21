@@ -278,10 +278,17 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
             }
         }}
         var nextLinkId by remember { mutableStateOf(dynamicLinks.size) }
+        
+        val sectionTitle = menuItems.find { it.first == currentSection }?.second ?: "NWC"
 
         AlertDialog(
             onDismissRequest = { showFormDialog = false },
-            title = { Text(if (selectedGameForEdit != null) "Editar Item" else "Adicionar Item", fontWeight = FontWeight.Bold) },
+            title = { 
+                Text(
+                    text = if (selectedGameForEdit != null) "Editar em $sectionTitle" else "Adicionar em $sectionTitle", 
+                    fontWeight = FontWeight.Bold
+                ) 
+            },
             text = {
                 Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Column {
@@ -326,7 +333,7 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
                                         .fillMaxWidth()
                                         .background(Color.White.copy(alpha = 0.03f), shape = RoundedCornerShape(12.dp))
                                         .padding(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
+                                    verticalAlignment = Alignment.Bottom,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -350,9 +357,13 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
                                     }
                                     IconButton(
                                         onClick = { dynamicLinks.remove(link) },
-                                        modifier = Modifier.align(Alignment.CenterVertically)
+                                        modifier = Modifier.padding(bottom = 2.dp)
                                     ) {
-                                        Icon(painter = painterResource(id = R.drawable.delete_24px), contentDescription = "Remover Link", tint = MaterialTheme.colorScheme.error)
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.delete_24px), 
+                                            contentDescription = "Remover Link", 
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                     }
                                 }
                             }
@@ -539,7 +550,7 @@ fun MainScreen(viewModel: MainViewModel, mediaPlayer: MediaPlayer) {
 
         AlertDialog(
             onDismissRequest = { if (!isDownloading) showUpdateDialog = false },
-            title = { Text("Nova Atualização disponível!", fontWeight = FontWeight.Bold) },
+            title = { Text("Nova Atualização disponible!", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("Versão: $serverVersionName")
