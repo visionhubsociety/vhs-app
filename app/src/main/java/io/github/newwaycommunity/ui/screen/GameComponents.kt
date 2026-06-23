@@ -92,8 +92,7 @@ fun GameCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
         border = cardBorder,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.3f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.3f)) // DEĞİŞİKLİK: elevation parametresi silindi, buglı çizgi temizlendi.
     ) {
         Column {
             Box(modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f)) {

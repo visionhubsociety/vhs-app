@@ -1,9 +1,9 @@
 {
-    "version": "2.0.1",
-    "versionCode": 12,
+    "version": "2.0.2",
+    "versionCode": 13,
     "changelog": {
-        "pt": "Atualização crítica",
-        "en": "Critical update"
+        "pt": "fix search bar and shimmer",
+        "en": "fix search bar and shimmer"
     },
     "downloadSources": [
         {
