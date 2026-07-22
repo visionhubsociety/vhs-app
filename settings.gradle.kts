@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "NewWayCommunity"
+rootProject.name = "VisionHubSociety"
 include(":app")

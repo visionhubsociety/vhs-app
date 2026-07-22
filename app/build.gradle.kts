@@ -5,15 +5,15 @@ plugins {
 }
 
 android {
-    namespace = "io.github.newwaycommunity"
+    namespace = "app.vercel.visionhubs"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "io.github.newwaycommunity"
+        applicationId = "app.vercel.visionhubs"
         minSdk = 24
         targetSdk = 36
-        versionCode = 13
-        versionName = "2.0.2"
+        versionCode = 1
+        versionName = "1.0.0"
 
         vectorDrawables {
             useSupportLibrary = true
@@ -22,12 +22,12 @@ android {
 
     signingConfigs {
         create("release") {
-            val envPath = System.getenv("KEYSTORE_PATH") ?: "nwc-release-key.jks"
+            val envPath = System.getenv("KEYSTORE_PATH") ?: "vhs-release-key.jks"
             val envPassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
 
             storeFile = file(envPath)
             storePassword = envPassword
-            keyAlias = "nwc-app"
+            keyAlias = "vhs-app"
             keyPassword = envPassword
         }
     }

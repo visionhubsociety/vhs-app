@@ -30,7 +30,7 @@ jobs:
 
     - name: Decode keystore
       run: |
-        echo "${{ secrets.KEYSTORE_FILE }}" | base64 --decode > app/nwc-release-key.jks
+        echo "${{ secrets.KEYSTORE_FILE }}" | base64 --decode > app/vhs-release-key.jks
 
     - name: Grant execute permission for gradlew
       run: |
@@ -41,7 +41,7 @@ jobs:
 
     - name: Build and Sign Release APK via Gradle
       env:
-        KEYSTORE_PATH: "nwc-release-key.jks"
+        KEYSTORE_PATH: "vhs-release-key.jks"
         KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         KEYSTORE_ALIAS: ${{ secrets.KEYSTORE_ALIAS }}
       run: ./gradlew assembleRelease --no-daemon

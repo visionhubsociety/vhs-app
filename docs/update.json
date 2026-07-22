@@ -1,14 +1,14 @@
 {
-    "version": "2.0.2",
-    "versionCode": 13,
+    "version": "1.0.0",
+    "versionCode": 1,
     "changelog": {
-        "pt": "fix search bar and shimmer",
-        "en": "fix search bar and shimmer"
+        "pt": "Lançamento inicial",
+        "en": "Initial release"
     },
     "downloadSources": [
         {
             "name": "GitHub",
-            "url": "https://github.com/newwaycommunity/nwc-app/releases/download/release/app-release.apk"
+            "url": "https://github.com/visionhubsociety/vhs-app/releases/download/release/app-release.apk"
         }
     ]
 }
