@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,7 +35,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -52,15 +50,62 @@ import app.vercel.visionhubs.model.Game
 import app.vercel.visionhubs.model.LinkObject
 import app.vercel.visionhubs.util.UpdateUtil
 import app.vercel.visionhubs.viewmodel.MainViewModel
+import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 
 private data class LinkFieldState(val id: Int, val label: MutableState<String>, val url: MutableState<String>)
+
+private fun String?.isNullOfBlank(): Boolean = this == null || this.trim().isEmpty()
+
+private suspend fun sendDiscordWebhook(webhookUrl: String, game: Game, sectionTitle: String) {
+    withContext(Dispatchers.IO) {
+        try {
+            val url = URL(webhookUrl)
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.doOutput = true
+
+            val payload = JSONObject().apply {
+                put("embeds", JSONArray().apply {
+                    put(JSONObject().apply {
+                        put("title", game.name.take(256))
+                        put("description", if (game.desc.length > 300) game.desc.take(300) + "..." else game.desc)
+                        put("color", 0x8FE3FF)
+                        if (!game.banner.isNullOrBlank()) {
+                            put("image", JSONObject().apply { put("url", game.banner) })
+                        }
+                        put("fields", JSONArray().apply {
+                            put(JSONObject().apply {
+                                put("name", "Seção")
+                                put("value", sectionTitle)
+                                put("inline", true)
+                            })
+                            put("name", "Categoria")
+                            put("value", game.category.ifBlank { "—" })
+                            put("inline", true)
+                        })
+                        put("footer", JSONObject().apply { put("text", "Vision Hub Society") })
+                    })
+                })
+            }
+
+            OutputStreamWriter(connection.outputStream).use { writer ->
+                writer.write(payload.toString())
+                writer.flush()
+            }
+
+            connection.responseCode
+        } catch (_: Exception) {}
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -163,9 +208,6 @@ fun MainScreen(viewModel: MainViewModel) {
     val menuItems = remember {
         listOf(
             Triple("games_android", "Jogos Android", R.drawable.smartphone_24px),
-            Triple("games_hl1", "Half Life 1", R.drawable.target_24px),
-            Triple("games_hl2", "Half Life 2", R.drawable.target_24px),
-            Triple("games_emulator", "Jogos de Emulador", R.drawable.sports_esports_24px),
             Triple("games_apps", "Apps Premium", R.drawable.apps_24px)
         )
     }
@@ -189,7 +231,7 @@ fun MainScreen(viewModel: MainViewModel) {
                             emailError = false
                             emailErrorText = ""
                         },
-                        label = { Text("Email") },
+                        label = { Text("E-mail") },
                         singleLine = true,
                         isError = emailError,
                         supportingText = { if (emailError) Text(emailErrorText) },
@@ -269,6 +311,9 @@ fun MainScreen(viewModel: MainViewModel) {
         var category by remember { mutableStateOf(selectedGameForEdit?.category ?: "") }
         var bannerUrl by remember { mutableStateOf(selectedGameForEdit?.banner ?: "") }
         var isPinned by remember { mutableStateOf(selectedGameForEdit?.pinned ?: false) }
+        
+        var webhookUrl by remember { mutableStateOf(sharedPreferences.getString("discord_webhook_url", "") ?: "") }
+        var sendToDiscord by remember { mutableStateOf(false) }
         
         var nameError by remember { mutableStateOf(false) }
 
@@ -388,14 +433,38 @@ fun MainScreen(viewModel: MainViewModel) {
                     OutlinedTextField(
                         value = bannerUrl,
                         onValueChange = { bannerUrl = it },
-                        label = { Text("URL do Banner (Imgur)") },
+                        label = { Text("URL do Banner (Imgur/Direto)") },
                         leadingIcon = { Icon(painter = painterResource(id = R.drawable.image_24px), contentDescription = null) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
+
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = isPinned, onCheckedChange = { isPinned = it })
                         Text("Fixar no topo", modifier = Modifier.padding(start = 8.dp))
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    if (selectedGameForEdit == null) {
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(checked = sendToDiscord, onCheckedChange = { sendToDiscord = it })
+                                Text("Notificar no Discord (Webhook)", modifier = Modifier.padding(start = 8.dp), fontWeight = FontWeight.Medium)
+                            }
+                            if (sendToDiscord) {
+                                OutlinedTextField(
+                                    value = webhookUrl,
+                                    onValueChange = { 
+                                        webhookUrl = it
+                                        sharedPreferences.edit().putString("discord_webhook_url", it).apply()
+                                    },
+                                    label = { Text("URL do Webhook do Discord") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                                )
+                            }
+                        }
                     }
                 }
             },
@@ -419,6 +488,11 @@ fun MainScreen(viewModel: MainViewModel) {
                     
                     viewModel.saveGame(gameToSave) { success ->
                         if (success) {
+                            if (sendToDiscord && webhookUrl.isNotBlank() && selectedGameForEdit == null) {
+                                scope.launch {
+                                    sendDiscordWebhook(webhookUrl.trim(), gameToSave, sectionTitle)
+                                }
+                            }
                             showFormDialog = false
                         } else {
                             Toast.makeText(context, "Erro ao salvar!", Toast.LENGTH_SHORT).show()
@@ -553,7 +627,7 @@ fun MainScreen(viewModel: MainViewModel) {
 
         AlertDialog(
             onDismissRequest = { if (!isDownloading) showUpdateDialog = false },
-            title = { Text("Nova Atualização disponible!", fontWeight = FontWeight.Bold) },
+            title = { Text("Nova Atualização disponível!", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("Versão: $serverVersionName")
@@ -609,46 +683,184 @@ fun MainScreen(viewModel: MainViewModel) {
                     drawerContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                     windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Start + WindowInsetsSides.Top + WindowInsetsSides.Bottom)
                 ) {
-                    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(bottom = 24.dp)
+                    ) {
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("Vision Hub Society", modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp), fontSize = 20.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        Text(
+                            text = "Vision Hub Society", 
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp), 
+                            fontSize = 20.sp, 
+                            fontWeight = FontWeight.Black, 
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "v1.0 • App Community", 
+                            modifier = Modifier.padding(horizontal = 24.dp), 
+                            fontSize = 12.sp, 
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = "Navegação", 
+                            fontSize = 12.sp, 
+                            fontWeight = FontWeight.Bold, 
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp)
+                        )
+
                         menuItems.forEach { (route, label, iconRes) ->
                             NavigationDrawerItem(
                                 label = { Text(label, fontSize = 14.sp, fontWeight = FontWeight.Medium) },
                                 icon = { Icon(painterResource(iconRes), contentDescription = label) },
                                 selected = currentSection == route,
-                                onClick = { viewModel.loadSection(route); scope.launch { drawerState.close() } },
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)
+                                onClick = { 
+                                    viewModel.loadSection(route)
+                                    scope.launch { drawerState.close() } 
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp)
                             )
                         }
-                        Spacer(modifier = Modifier.height(16.dp))
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp))
-                        
-                        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+
+                        Spacer(modifier = Modifier.height(12.dp))
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = "Comunidade & Links", 
+                            fontSize = 12.sp, 
+                            fontWeight = FontWeight.Bold, 
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp)
+                        )
+
+                        NavigationDrawerItem(
+                            label = { Text("Nosso Website", fontSize = 14.sp, fontWeight = FontWeight.Medium) },
+                            icon = { Icon(painterResource(R.drawable.apps_24px), contentDescription = "Website") },
+                            selected = false,
+                            onClick = {
+                                scope.launch { drawerState.close() }
+                                try {
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://visionhubs.vercel.app")))
+                                } catch (_: Exception) {}
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp)
+                        )
+
+                        NavigationDrawerItem(
+                            label = { Text("Servidor do Discord", fontSize = 14.sp, fontWeight = FontWeight.Medium) },
+                            icon = { Icon(painterResource(R.drawable.discord_24px), contentDescription = "Discord") },
+                            selected = false,
+                            onClick = {
+                                scope.launch { drawerState.close() }
+                                try {
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://discord.gg/W5DUnEUgtj")))
+                                } catch (_: Exception) {}
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = "Configurações Globais", 
+                            fontSize = 12.sp, 
+                            fontWeight = FontWeight.Bold, 
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp)
+                        )
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp, vertical = 6.dp), 
+                            horizontalArrangement = Arrangement.SpaceBetween, 
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Text("Tema", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHighest, modifier = Modifier.height(38.dp)) {
+                            Surface(
+                                shape = CircleShape, 
+                                color = MaterialTheme.colorScheme.surfaceContainerHighest, 
+                                modifier = Modifier.height(38.dp)
+                            ) {
                                 Row(modifier = Modifier.padding(2.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                                     val modes = listOf(R.drawable.light_mode_24px, R.drawable.brightness_auto_24px, R.drawable.dark_mode_24px)
                                     modes.forEachIndexed { index, iconRes ->
                                         val isSelected = selectedThemeMode == index
-                                        Surface(shape = CircleShape, color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent, modifier = Modifier.size(34.dp).clickable { viewModel.setThemeMode(index) }) {
-                                            Box(contentAlignment = Alignment.Center) { Icon(painter = painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(18.dp), tint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant) }
+                                        Surface(
+                                            shape = CircleShape, 
+                                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent, 
+                                            modifier = Modifier
+                                                .size(34.dp)
+                                                .clickable { viewModel.setThemeMode(index) }
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) { 
+                                                Icon(
+                                                    painter = painterResource(id = iconRes), 
+                                                    contentDescription = null, 
+                                                    modifier = Modifier.size(18.dp), 
+                                                    tint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                                ) 
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
-                        
-                        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 4.dp).clickable { starsEnabled = !starsEnabled; sharedPreferences.edit().putBoolean("stars_enabled", starsEnabled).apply() }, horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp, vertical = 4.dp)
+                                .clickable { 
+                                    starsEnabled = !starsEnabled
+                                    sharedPreferences.edit().putBoolean("stars_enabled", starsEnabled).apply() 
+                                }, 
+                            horizontalArrangement = Arrangement.SpaceBetween, 
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Text("Efeito de estrelas", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                            Switch(checked = starsEnabled, onCheckedChange = { starsEnabled = it; sharedPreferences.edit().putBoolean("stars_enabled", it).apply() }, modifier = Modifier.graphicsLayer(scaleX = 0.8f, scaleY = 0.8f))
+                            Switch(
+                                checked = starsEnabled, 
+                                onCheckedChange = { 
+                                    starsEnabled = it
+                                    sharedPreferences.edit().putBoolean("stars_enabled", it).apply() 
+                                }, 
+                                modifier = Modifier.graphicsLayer(scaleX = 0.8f, scaleY = 0.8f)
+                            )
                         }
 
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 4.dp).clickable { viewModel.setMonetEnabled(!monetEnabled) }, horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 24.dp, vertical = 4.dp)
+                                    .clickable { viewModel.setMonetEnabled(!monetEnabled) }, 
+                                horizontalArrangement = Arrangement.SpaceBetween, 
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Text("Cores dinâmicas", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                                Switch(checked = monetEnabled, onCheckedChange = { viewModel.setMonetEnabled(it) }, modifier = Modifier.graphicsLayer(scaleX = 0.8f, scaleY = 0.8f))
+                                Switch(
+                                    checked = monetEnabled, 
+                                    onCheckedChange = { viewModel.setMonetEnabled(it) }, 
+                                    modifier = Modifier.graphicsLayer(scaleX = 0.8f, scaleY = 0.8f)
+                                )
                             }
                         }
                     }
@@ -691,7 +903,13 @@ fun MainScreen(viewModel: MainViewModel) {
                     }
                 }
             ) { scaffoldPadding ->
-                Column(modifier = Modifier.fillMaxSize().padding(scaffoldPadding).windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)).pointerInput(Unit) { detectTapGestures(onTap = { focusManager.clearFocus() }) }) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(scaffoldPadding)
+                        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
+                        .pointerInput(Unit) { detectTapGestures(onTap = { focusManager.clearFocus() }) }
+                ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
